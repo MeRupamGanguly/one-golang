@@ -3,58 +3,44 @@ package main
 import (
 	"fmt"
 	"sync"
-	"time"
 )
 
-func isPrime(n int) bool {
-	if n <= 1 {
-		return false
-	}
-	for i := 2; i < n; i++ {
-		if n%i == 0 {
-			return false
-		}
-	}
-	return true
-}
-func primer(a []int, ch chan<- map[int]bool, wg *sync.WaitGroup) {
-	time.Sleep(time.Second)
+func palindrome(s string, ch chan<- map[string]bool, wg *sync.WaitGroup) {
 	defer wg.Done()
-	m := make(map[int]bool)
-	for i := range a {
-		m[a[i]] = isPrime(a[i])
+	arr := []rune(s)
+	l := 0
+	r := len(arr) - 1
+	m := make(map[string]bool)
+	for l < r {
+		if arr[l] != arr[r] {
+			m[s] = false
+			ch <- m
+			return
+		}
+		l++
+		r--
 	}
+	m[s] = true
 	ch <- m
 }
+
 func main() {
-	startTime := time.Now()
-	var wg sync.WaitGroup
-	n := 12
-	arr := []int{}
-	for i := 0; i < n; i++ {
-		arr = append(arr, i)
-	}
-	length := len(arr)
-	goroutines := 4
-	part := length / goroutines
-	ch := make(chan map[int]bool, goroutines)
-	ma := make(map[int]bool)
-	for i := 0; i < goroutines; i++ {
+	arr := []string{"lola", "boob", "fidrat", "Ninja"}
+	ch := make(chan map[string]bool, len(arr))
+	wg := sync.WaitGroup{}
+	for i := range arr {
 		wg.Add(1)
-		s := i * part
-		e := s + part
-		if e > length {
-			e = length
-		}
-		go primer(arr[s:e], ch, &wg)
+		go palindrome(arr[i], ch, &wg)
 	}
-	wg.Wait()
-	close(ch)
+	go func() {
+		wg.Wait()
+		close(ch)
+	}()
+	m := make(map[string]bool)
 	for i := range ch {
 		for k, v := range i {
-			ma[k] = v
+			m[k] = v
 		}
 	}
-	fmt.Println(ma)
-	fmt.Println("Time Taken: ", time.Since(startTime))
+	fmt.Println(m)
 }
